@@ -225,7 +225,7 @@ The preview stores a job payload per row to make the first workflow reviewable. 
 - **Files:** private upload/download is implemented with a 10 MB limit. Structured artwork versions, annotations, malware scanning, document previews and retention policies remain.
 - **AI:** no generated lead scores or automated customer replies. Future AI can summarize history and suggest actions, with grounded references and human review for external actions.
 - **Reliability:** production backup/restore verification, disaster recovery, observability, pagination/large data tests, rate limits, migration rehearsals and retention controls remain.
-- **QA:** API and workflow checks have been run. Browser interaction, mobile visual, print output and accessibility audits have not been performed. Optional WebMCP hooks are feature-detected; no supported validation context was available to verify them.
+- **QA:** API and workflow checks have been run. Browser interaction, mobile visual, print output and accessibility audits have not been performed. Optional WebMCP read/open hooks passed a focused local contract check after the initial private publication; this does not replace general browser QA.
 
 ## 10. Production controls to design before rollout
 

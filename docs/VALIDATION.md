@@ -27,4 +27,4 @@ Passed:
 
 Not performed: browser interaction, mobile/desktop visual QA, print rendering QA, screen-reader or WCAG conformance audit, hosted integration testing, load testing, backup restore verification, and full production security review.
 
-Optional WebMCP read/open hooks were added with feature detection and cleanup. No supported validation context was available; these hooks are unverified and are not relied on for the application's normal workflow.
+After the first private deployment, the optional WebMCP hooks were verified in the local preview: both tools registered with the intended schemas and annotations; job listing returned the saved records; a valid job ID opened the matching visible detail panel; additional read parameters and an unknown job ID were rejected, leaving the existing panel unchanged. This was a focused tool-contract check, not a general browser audit.
