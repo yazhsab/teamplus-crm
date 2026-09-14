@@ -1,0 +1,20 @@
+# This file lives beside package.json. If importing a parent repository,
+# select crm as Netlify's base directory; otherwise leave the base empty.
+[build]
+  command = "npm run check:env && npm run build:netlify"
+  publish = ".next-production"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--include=dev"
+  TEAMPLUS_BUILD_TARGET = "production"
+
+# Explicit selection also makes local CLI builds use Next.js when the
+# repository contains the separate Vite/Sites preview. Netlify installs
+# the current adapter; its version is intentionally not pinned.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Do not use the Sites build, a static export, or an SPA catch-all redirect.
+# Set the four variables from .env.example in the Netlify dashboard,
+# with Builds and Functions scopes. Never commit credentials here.

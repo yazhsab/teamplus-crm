@@ -1,11 +1,16 @@
 import { z } from "zod";
 import { categories, stages } from "./domain";
-const isoDate = z
+export const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((v) => {
     const d = new Date(v + "T12:00:00Z");
-    return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+    return (
+      !isNaN(d.getTime()) &&
+      d.toISOString().slice(0, 10) === v &&
+      v >= "2000-01-01" &&
+      v <= "2199-12-31"
+    );
   }, "Choose a valid date");
 const boundedMoney = z.number().int().min(0).max(100000000);
 export const jobInput = z
@@ -42,50 +47,51 @@ export const actionInput = z.discriminatedUnion("action", [
   z.object({ action: z.literal("createJob"), job: jobInput }),
   z.object({
     action: z.literal("editJob"),
-    id: z.string(),
-    version: z.number().int(),
+    id: z.string().min(1).max(80),
+    version: z.number().int().positive(),
     job: jobInput,
   }),
   z.object({
     action: z.literal("advance"),
-    id: z.string(),
-    version: z.number().int(),
+    id: z.string().min(1).max(80),
+    version: z.number().int().positive(),
     stage: z.enum(stages),
   }),
   z.object({
     action: z.literal("approveArtwork"),
-    id: z.string(),
-    version: z.number().int(),
+    id: z.string().min(1).max(80),
+    version: z.number().int().positive(),
     reference: z.string().trim().min(4).max(1000),
   }),
   z.object({
     action: z.literal("passQC"),
-    id: z.string(),
-    version: z.number().int(),
+    id: z.string().min(1).max(80),
+    version: z.number().int().positive(),
     reference: z.string().trim().min(4).max(1000),
   }),
   z.object({
     action: z.literal("recordDelivery"),
-    id: z.string(),
-    version: z.number().int(),
+    id: z.string().min(1).max(80),
+    version: z.number().int().positive(),
     reference: z.string().trim().min(4).max(1000),
   }),
   z.object({
     action: z.literal("payment"),
-    id: z.string(),
-    version: z.number().int(),
+    id: z.string().min(1).max(80),
+    version: z.number().int().positive(),
     amount: boundedMoney.refine((n) => n > 0),
     reference: z.string().trim().min(3).max(200),
   }),
   z.object({
     action: z.literal("note"),
-    id: z.string(),
+    id: z.string().min(1).max(80),
     text: z.string().trim().min(1).max(5000),
   }),
   z.object({ action: z.literal("createTask"), task: taskInput }),
   z.object({
     action: z.literal("completeTask"),
-    id: z.string(),
+    id: z.string().min(1).max(80),
     done: z.boolean(),
+    version: z.number().int().positive().optional(),
   }),
 ]);

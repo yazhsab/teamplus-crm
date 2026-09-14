@@ -48,15 +48,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import {
-  seedWorkspace,
-  money,
-  dateLabel,
-  stages,
-  Job,
-  Workspace,
-  today,
-} from "@/lib/domain";
+import { money, dateLabel, stages, Job, Workspace, today } from "@/lib/domain";
 import {
   Customers,
   Finance,
@@ -147,12 +139,18 @@ function NavButton({
     </SidebarMenuButton>
   );
 }
-export default function Home() {
-  const [data, setData] = useState<Workspace>(seedWorkspace);
+export default function Home({ mode }: { mode: "preview" | "production" }) {
+  const [data, setData] = useState<Workspace>({
+    jobs: [],
+    tasks: [],
+    events: [],
+    files: [],
+  });
   const [active, setActive] = useState("Overview");
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const retryRef = useRef<{ signature: string; key: string } | null>(null);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<"new" | "edit" | null>(null);
@@ -160,18 +158,23 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("All stages");
-  const [user, setUser] = useState({ name: "TeamPlus", email: "" });
+  const [user, setUser] = useState({
+    name: "TeamPlus",
+    email: "",
+    role: mode === "preview" ? "admin" : "viewer",
+  });
   const selected = data.jobs.find((j) => j.id === selectedId) || null;
   const reload = useCallback(async () => {
     try {
       const r = await fetch("/api/workspace");
       const result = (await r.json()) as Workspace & {
         error?: string;
-        user?: { name: string; email: string };
+        user?: { name: string; email: string; role?: string };
       };
       if (!r.ok) throw new Error(result.error);
       setData(result);
-      if (result.user) setUser(result.user);
+      if (result.user)
+        setUser({ ...result.user, role: result.user.role || "admin" });
       setReady(true);
       setError("");
     } catch (e) {
@@ -180,36 +183,62 @@ export default function Home() {
       );
     }
   }, []);
-  const save = useCallback(async (payload: Record<string, unknown>) => {
-    if (busyRef.current) return false;
-    busyRef.current = true;
-    setBusy(true);
-    try {
-      const r = await fetch("/api/workspace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const result = (await r.json()) as { error?: string; data: Workspace };
-      if (!r.ok) throw new Error(result.error || "Could not save.");
-      setData(result.data);
-      setError("");
-      toast.success(
-        payload.action === "createJob"
-          ? "Enquiry created"
-          : payload.action === "payment"
-            ? "Payment recorded"
-            : "Changes saved",
-      );
-      return true;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save.");
-      return false;
-    } finally {
-      setBusy(false);
-      busyRef.current = false;
-    }
-  }, []);
+  const save = useCallback(
+    async (payload: Record<string, unknown>) => {
+      if (busyRef.current) return false;
+      busyRef.current = true;
+      const signature = JSON.stringify(payload);
+      if (retryRef.current?.signature !== signature)
+        retryRef.current = { signature, key: crypto.randomUUID() };
+      setBusy(true);
+      try {
+        const r = await fetch("/api/workspace", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": retryRef.current.key,
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = (await r.json()) as {
+          error?: string;
+          data?: Workspace;
+          refreshRequired?: boolean;
+        };
+        if (!r.ok) {
+          if (r.status === 409) {
+            retryRef.current = null;
+            await reload();
+          }
+          throw new Error(result.error || "Could not save.");
+        }
+        retryRef.current = null;
+        if (result.data) setData(result.data);
+        else {
+          await reload();
+          toast.info(
+            "Change saved. Refresh if the latest records are not visible.",
+          );
+        }
+        setError("");
+        toast.success(
+          payload.action === "createJob"
+            ? "Enquiry created"
+            : payload.action === "payment"
+              ? "Payment recorded"
+              : "Changes saved",
+        );
+        return true;
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not save.");
+        return false;
+      } finally {
+        setBusy(false);
+        busyRef.current = false;
+      }
+    },
+    [reload],
+  );
   const navigate = useCallback((name: string) => {
     setActive(name);
     setQuery("");
@@ -269,7 +298,7 @@ export default function Home() {
         {
           name: "list_teamplus_jobs",
           description:
-            "Read the current TeamPlus job records. Returns illustrative sample and user-created records from this workspace.",
+            "Read the current TeamPlus job records available in this workspace.",
           inputSchema: {
             type: "object",
             properties: {},
@@ -334,7 +363,7 @@ export default function Home() {
   const focusTasks = openTasks
     .filter((t) => t.due <= today())
     .sort((a, b) => (a.due + a.time).localeCompare(b.due + b.time));
-  const pending = ready ? busy : true;
+  const pending = !ready || busy || user.role === "viewer";
   const visibleJobs = data.jobs.filter(
     (j) =>
       (stageFilter === "All stages" || j.stage === stageFilter) &&
@@ -426,7 +455,12 @@ export default function Home() {
         <SidebarFooter>
           <div className="workspace-note">
             <span className="orange-dot" />
-            Sample workspace<small>Explore with illustrative data</small>
+            {mode === "preview" ? "Sample workspace" : "Team workspace"}
+            <small>
+              {mode === "preview"
+                ? "Explore with illustrative data"
+                : `Access: ${user.role}`}
+            </small>
           </div>
           <button
             className="user-profile"
@@ -435,10 +469,17 @@ export default function Home() {
             <span className="avatar orange">TP</span>
             <div>
               {user.name.split("@")[0]}
-              <small>Workspace owner</small>
+              <small>{mode === "preview" ? "Preview owner" : user.role}</small>
             </div>
             <Settings size={17} />
           </button>
+          {mode === "production" && (
+            <form action="/auth/signout" method="post">
+              <button className="text-button" type="submit">
+                Sign out
+              </button>
+            </form>
+          )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="main-shell">
@@ -527,7 +568,9 @@ export default function Home() {
           </div>
           {error && (
             <div className="error-banner" role="alert">
-              <span>{error}</span>
+              <span>
+                {error} {mode === "production" && <a href="/login">Sign in</a>}
+              </span>
               <button
                 className="secondary-button"
                 onClick={() => void reload()}
@@ -774,6 +817,7 @@ export default function Home() {
                             save({
                               action: "completeTask",
                               id: t.id,
+                              version: t.version,
                               done: v === true,
                             })
                           }
@@ -831,13 +875,15 @@ export default function Home() {
               tasks={data.tasks}
               save={save}
               busy={pending}
-              addTask={() => setTaskForm(true)}
+              addTask={() => !pending && setTaskForm(true)}
             />
           ) : active === "Reports" ? (
             <>
               <div className="view-toolbar">
                 <span>
-                  All saved jobs · illustrative and user-created records
+                  {mode === "preview"
+                    ? "All saved jobs · illustrative and user-created records"
+                    : "All saved jobs in your team workspace"}
                 </span>
                 <button className="secondary-button" onClick={exportData}>
                   Export CSV <ArrowUpRight size={15} />
@@ -846,7 +892,7 @@ export default function Home() {
               <Reports jobs={data.jobs} />
             </>
           ) : active === "Connections" ? (
-            <Connections />
+            <Connections production={mode === "production"} role={user.role} />
           ) : (
             <>
               <div className="view-toolbar">
@@ -924,6 +970,8 @@ export default function Home() {
         busy={pending}
         onEdit={() => setForm("edit")}
         reload={reload}
+        production={mode === "production"}
+        canPay={user.role === "admin" || user.role === "manager"}
       />
       {form && (
         <EnquiryForm

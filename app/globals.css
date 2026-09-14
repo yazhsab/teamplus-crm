@@ -1934,3 +1934,93 @@ h1 {
     display: none !important;
   }
 }
+
+.auth-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: #101216;
+}
+.auth-panel {
+  width: 100%;
+  max-width: 28rem;
+  padding: 2rem;
+  background: #1b1e24;
+  border: 1px solid #363b45;
+  border-radius: 1rem;
+  color: #f4f5f7;
+}
+.auth-panel .brand {
+  margin-bottom: 2rem;
+}
+.auth-panel h1 {
+  font-size: 1.8rem;
+  font-weight: 650;
+  margin-bottom: 0.75rem;
+}
+.auth-panel p {
+  color: #b7beca;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+.auth-panel form {
+  display: grid;
+  gap: 1rem;
+}
+.auth-panel label {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+.auth-panel input {
+  width: 100%;
+  border: 1px solid #59616f;
+  border-radius: 0.45rem;
+  background: #101216;
+  color: #fff;
+  padding: 0.75rem;
+  font-size: 1rem;
+}
+.auth-panel input:focus-visible,
+.auth-link:focus-visible {
+  outline: 2px solid #ff914d;
+  outline-offset: 3px;
+}
+.auth-panel .primary-button {
+  justify-content: center;
+  min-height: 2.8rem;
+}
+.auth-link {
+  display: block;
+  margin: 1.2rem 0;
+  color: #ffad78;
+  text-decoration: underline;
+  font-size: 0.95rem;
+}
+.auth-panel .auth-help {
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+.team-access-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  flex-wrap: wrap;
+  border-top: 1px solid #353a43;
+}
+.team-access-row span {
+  flex: 1;
+  min-width: 12rem;
+  overflow-wrap: anywhere;
+}
+.team-access-row select {
+  background: #181b20;
+  border: 1px solid #555e6c;
+  border-radius: 0.4rem;
+  padding: 0.65rem;
+  color: #f4f5f7;
+}

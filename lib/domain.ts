@@ -41,6 +41,7 @@ export type Task = {
   due: string;
   time: string;
   done: boolean;
+  version?: number;
 };
 export type Event = { id: string; jobId: string; message: string; at: string };
 export type Workspace = {
@@ -324,14 +325,12 @@ export function seedWorkspace(): Workspace {
         done: false,
       },
     ],
-    events: jobs
-      .slice(0, 4)
-      .map((j, i) => ({
-        id: `event-${i}`,
-        jobId: j.id,
-        message: `${j.customer} · ${j.stage}`,
-        at: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
-      })),
+    events: jobs.slice(0, 4).map((j, i) => ({
+      id: `event-${i}`,
+      jobId: j.id,
+      message: `${j.customer} · ${j.stage}`,
+      at: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
+    })),
   };
 }
 export function nextStage(job: Job): Stage | undefined {

@@ -52,10 +52,25 @@ export default defineConfig(async () => {
 
   return {
     server: {
-      ...(managedLinux ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] } : {}),
-      ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
+      ...(managedLinux
+        ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
+        : {}),
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
     },
     plugins: [
+      {
+        name: "teamplus-sites-runtime",
+        enforce: "pre",
+        load(id: string) {
+          const path = id.split("?")[0];
+          if (path === new URL("./lib/runtime.ts", import.meta.url).pathname)
+            return 'export * from "./preview/runtime";';
+          if (path === new URL("./lib/session-proxy.ts", import.meta.url).pathname)
+            return 'export * from "./preview/session-proxy";';
+        },
+      },
       vinext(),
       sites({ mockAuth: !managedLinux }),
       cloudflare({

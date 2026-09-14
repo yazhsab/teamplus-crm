@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next-production/types/**/*.ts",
+    ".next-production/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "examples",
+    ".next",
+    ".netlify",
+    "dist"
+  ]
+}

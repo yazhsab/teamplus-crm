@@ -1,3 +1,5 @@
+> Implementation update (14 September 2026): The code now includes a separate Next.js/Supabase production runtime with team roles, migrations, private storage and release packaging. The original review below documents the initial product decisions; current setup and boundaries are in [DEPLOYMENT.md](DEPLOYMENT.md) and [PRODUCTION_VALIDATION.md](PRODUCTION_VALIDATION.md). The Sites preview still uses D1/R2.
+
 # TeamPlus CRM + ERP: product blueprint and provider review
 
 Prepared 14 September 2026. This document separates source evidence, product recommendations, the working first version, and implementation still required. The project is not yet a production ERP.

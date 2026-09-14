@@ -1,7 +1,7 @@
 import WorkspaceApp from "@/components/workspace-app";
-import { requireChatGPTUser } from "./chatgpt-auth";
+import { requireWorkspacePage } from "@/lib/runtime";
 export const dynamic = "force-dynamic";
 export default async function Home() {
-  await requireChatGPTUser("/");
-  return <WorkspaceApp />;
+  const mode = await requireWorkspacePage();
+  return <WorkspaceApp mode={mode} />;
 }

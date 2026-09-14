@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import { TeamAccess } from "@/components/team-access";
+import { uploadJobFile, type UploadAttempt } from "@/lib/upload";
+import { useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -464,7 +466,12 @@ export function Tasks({
               disabled={busy}
               checked={t.done}
               onCheckedChange={(v) =>
-                save({ action: "completeTask", id: t.id, done: v === true })
+                save({
+                  action: "completeTask",
+                  id: t.id,
+                  version: t.version,
+                  done: v === true,
+                })
               }
               aria-label={"Complete " + t.title}
             />
@@ -592,14 +599,22 @@ export function Reports({ jobs }: { jobs: Job[] }) {
     </div>
   );
 }
-export function Connections() {
+export function Connections({
+  production = false,
+  role = "admin",
+}: {
+  production?: boolean;
+  role?: string;
+}) {
   return (
     <>
+      {production && role === "admin" && <TeamAccess />}
       <div className="info-banner">
         <ShieldCheck size={20} />
         <span>
-          This owner-only preview uses your private workspace identity. Staff
-          roles and external services require implementation before rollout.
+          {production
+            ? `Your role is ${role}. Team records and attachments are shared according to your workspace access.`
+            : "This preview uses your private workspace identity. Production uses separate team accounts and data."}
         </span>
       </div>
       <div className="customer-grid">
@@ -621,8 +636,10 @@ export function Connections() {
           ],
           [
             "Team permissions",
-            "Admin, Sales, Designer, Production, Accounts and Delivery.",
-            "Planned",
+            production
+              ? "Administrators manage access. Managers record payments. Members handle operations. Viewers can read and export."
+              : "Production supports administrators, managers, members and viewers.",
+            production ? "Available" : "Production only",
           ],
           [
             "Stock & purchasing",
@@ -907,6 +924,8 @@ export function JobDetail({
   busy,
   onEdit,
   reload,
+  production = false,
+  canPay = true,
 }: {
   job: Job | null;
   data: Workspace;
@@ -915,9 +934,12 @@ export function JobDetail({
   busy: boolean;
   onEdit: (j: Job) => void;
   reload: () => Promise<void>;
+  production?: boolean;
+  canPay?: boolean;
 }) {
   const [action, setAction] = useState("");
   const [uploading, setUploading] = useState(false);
+  const uploadAttempt = useRef<UploadAttempt | null>(null);
   const [fileError, setFileError] = useState("");
   if (!job) return null;
   const next = nextStage(job);
@@ -939,7 +961,11 @@ export function JobDetail({
           </SheetHeader>
           <div className="detail-scroll">
             <div className="detail-actions">
-              <button className="secondary-button" onClick={() => onEdit(job)}>
+              <button
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => onEdit(job)}
+              >
                 Edit details
               </button>
               {next && (
@@ -1034,6 +1060,7 @@ export function JobDetail({
                     {job.stage === "Design" && !job.artworkApproved ? (
                       <button
                         className="text-button"
+                        disabled={busy}
                         onClick={() => setAction("approveArtwork")}
                       >
                         Record approval <ArrowRight size={14} />
@@ -1059,6 +1086,7 @@ export function JobDetail({
                     {job.stage === "Quality check" && !job.qcPassed ? (
                       <button
                         className="text-button"
+                        disabled={busy}
                         onClick={() => setAction("passQC")}
                       >
                         Complete QC <ArrowRight size={14} />
@@ -1080,6 +1108,12 @@ export function JobDetail({
                     {stages.indexOf(job.stage) >= 3 && job.value > job.paid && (
                       <button
                         className="text-button"
+                        disabled={busy || !canPay}
+                        title={
+                          !canPay
+                            ? "A manager or administrator must record payments"
+                            : undefined
+                        }
                         onClick={() => setAction("payment")}
                       >
                         Record payment <Plus size={14} />
@@ -1171,7 +1205,12 @@ export function JobDetail({
                     </small>
                     <input
                       type="file"
-                      disabled={uploading}
+                      disabled={uploading || busy}
+                      accept={
+                        production
+                          ? ".pdf,.png,.jpg,.jpeg,.webp,.txt,.zip"
+                          : undefined
+                      }
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
@@ -1185,12 +1224,16 @@ export function JobDetail({
                         f.append("file", file);
                         f.append("jobId", job.id);
                         try {
-                          const r = await fetch("/api/files", {
-                            method: "POST",
-                            body: f,
-                          });
-                          const d = (await r.json()) as { error?: string };
-                          if (!r.ok) throw Error(d.error);
+                          if (production) {
+                            await uploadJobFile(file, job.id, uploadAttempt);
+                          } else {
+                            const r = await fetch("/api/files", {
+                              method: "POST",
+                              body: f,
+                            });
+                            const d = (await r.json()) as { error?: string };
+                            if (!r.ok) throw Error(d.error);
+                          }
                           await reload();
                           e.target.value = "";
                         } catch (error) {

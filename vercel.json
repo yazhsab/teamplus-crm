@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build:production",
+  "devCommand": "npm run dev:production",
+  "outputDirectory": ".next-production",
+  "env": {
+    "TEAMPLUS_BUILD_TARGET": "production"
+  }
+}
